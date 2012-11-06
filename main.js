@@ -1,20 +1,20 @@
-var SCALE = 10;
-var jsonFile = "";
+var SCALE = 15;
 
 dataFiles = {}
+// PHILIPPE,bret,irene,katia,lee,maria,ophelia,rhina,sean
+hurricaneList = ["philippe", "sandy", "isaac", "nadine", "beryl", "bret"]
 function load() {
 	var picker = document.getElementById("picker");
-	switch (location.hash) {
-		default:
-		case "#sandy":
-			jsonFile = "sandy2.json";
-			picker.value = "#sandy";
+	var hash = location.hash;
+	var choice = hurricaneList[0];
+	for (var i = 0; i < hurricaneList.length; i++) {
+		if ("#" + hurricaneList[i] == hash) {
+			choice = hurricaneList[i];
 			break;
-		case "#isaac":
-			jsonFile = "isaac2.json";
-			picker.value = "#isaac";
-			break;
+		}
 	}
+	var jsonFile = choice + ".json";
+	picker.value = "#" + choice;
 	if (jsonFile in dataFiles) newData(dataFiles[jsonFile]);
 	else d3.json(jsonFile, function(json) {
 		dataFiles[jsonFile] = json;
@@ -24,6 +24,14 @@ function load() {
 
 
 document.addEventListener("DOMContentLoaded", function() {
+	var options = d3.select("#picker")
+		.selectAll("option")
+		.data(hurricaneList)
+	options
+		.enter()
+		.append("option")
+		.attr("value", function(d,i) {return "#"+d})
+		.text(function(d, i){return d[0].toUpperCase() + d.slice(1).toLowerCase()})
 	window.addEventListener("hashchange", load);
 	document.getElementById("picker").addEventListener("change", function(){
 		// console.log('a');
@@ -59,17 +67,17 @@ load();
 	var opacityLayer = transformLayer.append("g")
 		.style("opacity", ".5")
 
+	var timestamp = svg
+			.append("text")
+			.attr("x", 0)
+			.attr("y", 10)
+			.attr("fill", "white")
+			.attr("font-size", 10)
+
 	window.newData = function newData(data) {
 		console.log(data);
 		window.data = data;
 
-		svg
-			.attr("width", (data.bounds.xmax-data.bounds.xmin)*SCALE)
-			.attr("height", (data.bounds.ymax-data.bounds.ymin)*SCALE)
-		transformLayer
-			.attr("transform",  "scale(1, -1) scale("+SCALE+") translate(0 0) translate("+(-data.bounds.xmin)+" "+(-data.bounds.ymax)+") scale(1)")
-	
-	
 		var scales = data.forecast
 			.map(function(e1, i, a) {
 				return d3.time.scale()
@@ -78,12 +86,19 @@ load();
 					.range(e1.points.map(function(e2,i,a){return e2.point}))
 					.clamp(true);
 		});
+		var mscales = scales.map(function(int,i,a){
+			return {interpolator: int, interpolator2:scales[Math.min(scales.length-1,i+1)], index: i};
+		});
+
+		svg
+			.attr("width", (data.bounds.xmax-data.bounds.xmin)*SCALE)
+			.attr("height", (data.bounds.ymax-data.bounds.ymin)*SCALE)
+		transformLayer
+			.attr("transform",  "scale(1, -1) scale("+SCALE+") translate(0 0) translate("+(-data.bounds.xmin)+" "+(-data.bounds.ymax)+") scale(1)")
 
 		window.scales = scales;
 
-		var subLayers = opacityLayer.selectAll("g").data(scales.map(function(int,i,a){
-			return {interpolator: int, interpolator2:scales[Math.min(scales.length-1,i+1)], index: i};
-		}));
+		var subLayers = opacityLayer.selectAll("g").data(mscales);
 
 		var subLayersEntered = subLayers.enter().append("g")
 			.style("fill", function(dat, i){
@@ -95,11 +110,20 @@ load();
 
 		subLayers.exit().remove();
 
-		subTransitions = subLayers
+		// subTransitions = subLayers
+		subTransitions = svg
 			.transition()
 			.delay(500)
-			.duration(3000)
+			.duration(15000)
 			.ease("linear")
+
+		subTransitions
+			.selectAll('text')
+			.tween("timestamp", function(dat, i) {
+				return function(t) {
+					this.textContent = (new Date((data.times.from + (data.times.to-data.times.from)*t)*1000)).toString();
+				}
+			})
 
 		subTransitions.selectAll("circle")
 			.tween("circle pos", function(dat,i){
