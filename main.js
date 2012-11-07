@@ -22,7 +22,7 @@ function load() {
 			break;
 		}
 	}
-	var jsonFile = choice + ".json";
+	var jsonFile = "storms/" + choice + ".json";
 	document.querySelector('input[name="choice"][value="#'+choice+'"]').checked = true
 	if (jsonFile in dataFiles) newData(dataFiles[jsonFile]);
 	else d3.json(jsonFile, function(json) {
