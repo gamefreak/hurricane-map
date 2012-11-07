@@ -38,12 +38,14 @@ document.addEventListener("DOMContentLoaded", function() {
 	// window.ranges = ranges;
 
 	var options = d3.select("#picker")
-		.style("float", "right")
-		.selectAll("span")
+		.style("background-color", "white")
+		.style("position", "absolute")
+		.style("right", "1em")
+		.selectAll("div")
 		.data(hurricaneList)
-	var spans = options
-		.enter().append("span")
-	spans
+	var divs = options
+		.enter().append("div")
+	divs
 		.append("input")
 		.attr("name", "choice")
 		.attr("type", "radio")
@@ -52,10 +54,10 @@ document.addEventListener("DOMContentLoaded", function() {
 		.on("change", function(data) {
 			location.hash = "#" + data;
 		})
-	spans.append("label")
+	divs.append("label")
 		.attr("for", function(d) {return "strm"+d})
 		.text(function(d, i){return d[0].toUpperCase() + d.slice(1).toLowerCase()})
-	spans.append("br")
+	
 	window.addEventListener("hashchange", load);
 
 	load();
@@ -63,6 +65,7 @@ document.addEventListener("DOMContentLoaded", function() {
 	window.svg = d3.select("body").append("svg")
 		.attr("width", 360)
 		.attr("height", 180)
+		.style("float", "left")
 
 	var transformLayer = svg.append("g")
 		.attr("transform", "scale(1 -1)")
@@ -76,7 +79,7 @@ document.addEventListener("DOMContentLoaded", function() {
 		.attr("xlink:href", "world_map.jpeg")
 
 	var opacityLayer = transformLayer.append("g")
-		.style("opacity", ".5")
+		.style("opacity", ".25")
 
 	var timestamp = svg
 			.append("text")
@@ -142,7 +145,7 @@ document.addEventListener("DOMContentLoaded", function() {
 					.range(e1.points.map(function(e2,i,a){return [e2.point.x, e2.point.y]}))
 					.clamp(true);
 		});
-
+	
 		window.scales = scales;
 		var mappedScale = d3.scale.ordinal()
 			.domain(d3.range(scales.length))
@@ -161,20 +164,28 @@ document.addEventListener("DOMContentLoaded", function() {
 
 		slider
 			.attr("x", -20)
-			.attr("y", (bounds.top-bounds.bottom)*SCALE-12);
+			.attr("y", (bounds.top-bounds.bottom)*SCALE-5);
 
 		var subLayers = opacityLayer.selectAll("g").data(d3.range(scales.length).reverse());
 
 		var subLayersEntered = subLayers.enter().append("g")
 			.style("fill", function(dat, i){
-				return d3.rgb(0, 0, 255).darker(((8-dat)/3.0))
-			});
-
-		subLayersEntered.append("polygon")
+				return d3.rgb(255,255, 255).hsl()
+				// .brighter(1.1)
+				.darker(((7-dat)/3.0))
+			})
+			
+		// subLayersEntered.append("polygon")
 		subLayersEntered.append("circle").attr("r", function(r,i){
 			return ranges(sizes(r))/60.0;
-		});
-		// subLayersEntered.append("polygon")
+		})
+		.style("stroke", "black")
+		.attr("stroke-width", ".1");
+
+		subLayersEntered.append("polygon")
+		subLayersEntered.append("polyline")
+		.style("stroke", "black")
+			.attr("stroke-width", ".1");
 
 		subLayers.exit().remove();
 
@@ -187,7 +198,6 @@ document.addEventListener("DOMContentLoaded", function() {
 		subTransitions
 			.selectAll("#slider")
 			.tween("slider", function(dat, i) {
-				console.log(dat, i);
 				return function(t) {
 					var width = (bounds.right-bounds.left)*SCALE;
 					this.setAttribute("x", (width+40)*t-20);
@@ -214,17 +224,17 @@ document.addEventListener("DOMContentLoaded", function() {
 			});
 
 
-		subTransitions.selectAll("polygon")
+		subTransitions.selectAll("polygon, polyline")
 			.tween("poly verts", function(dat, i) {
 				return function(t) {
 					var date = new Date((data.times.from + (data.times.to-data.times.from)*t)*1000);
 
 					var v1 = mappedScale(dat)(date)
 					var v2 = mappedScale(dat-1)(date)
-					if (dat != 0)console.assert(mappedScale(dat)!=mappedScale(dat-1), dat)
-					if (dat == 7) console.log(i, v1, ranges(sizes(i))/60, v2, ranges(sizes(i-1))/60);
-						this.setAttribute("points", polypoints(v1, v2, dat));
-					this.setAttribute("n", dat)
+					// if (dat != 0)console.assert(mappedScale(dat)!=mappedScale(dat-1), dat)
+					// if (dat == 7) console.log(i, v1, ranges(sizes(i))/60, v2, ranges(sizes(i-1))/60);
+					this.setAttribute("points", polypoints(v1, v2, dat));
+					// this.setAttribute("n", dat)
 			};
 		});
 
