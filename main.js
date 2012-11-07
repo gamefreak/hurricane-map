@@ -11,7 +11,7 @@ var RANGE_TABLE = [
 ];
 dataFiles = {}
 // PHILIPPE,bret,irene,katia,lee,maria,ophelia,rhina,sean
-hurricaneList = ["jova", "philippe", "sandy", "isaac", "nadine", "beryl", "bret", "katia"]
+hurricaneList = ["sandy", "jova", "philippe", "irene", "isaac", "nadine", "beryl", "bret", "katia"]
 function load() {
 	var picker = document.getElementById("picker");
 	var hash = location.hash;
@@ -85,10 +85,25 @@ document.addEventListener("DOMContentLoaded", function() {
 			.attr("fill", "white")
 			.attr("font-size", 10)
 
+	var slider = svg
+		.append("rect")
+		.attr("id", "slider")
+		.attr("x", 0)
+		.attr("y", -100)
+		.attr("width", 20)
+		.attr("height", 10)
+		.attr("rx", 2)
+		.attr("ry", 2)
+		.style("fill", "grey")
+
+
 	window.newData = function newData(data) {
 		console.log(data);
 		window.data = data;
-		var bounds;
+		data.forecast.sort(function(a,b) {
+			return d3.ascending(a.range, b.range)
+		})
+		var bounds = null;
 		// var left, right, top, bottom;
 		for (var a = 0; a < data.forecast.length; a++) {
 			for (var b = 0; b < data.forecast[a].points.length; b++) {
@@ -113,38 +128,42 @@ document.addEventListener("DOMContentLoaded", function() {
 		}
 
 		if (data.basin == "EP" && bounds.left > bounds.right) {
+			console.log("SHIFT");
 			bounds.left -= 360.0;
 		}
-		// console.log(bounds);
+		console.log(bounds);
 
-		var scales = data.forecast
+		var shortForcast = data.forecast
+			.filter(function(e, i, a) {return e.points.length >= 2})
+		var scales = shortForcast
 			.map(function(e1, i, a) {
 				return d3.time.scale()
 					.domain(e1.points.map(function(e2,i,a){return new Date((e2.time));}))
 					.range(e1.points.map(function(e2,i,a){return [e2.point.x, e2.point.y]}))
 					.clamp(true);
 		});
-		
+
 		window.scales = scales;
 		var mappedScale = d3.scale.ordinal()
-			.domain(d3.range(8))
+			.domain(d3.range(scales.length))
 			.range(scales);
 		window.mappedScale = mappedScale;
 
 		var sizes = d3.scale.linear()
-			.domain(d3.range(8))
-			.range(data.forecast.map(function(e,i,a){return e.range;}))
+			.domain(d3.range(shortForcast.length))
+			.range(shortForcast.map(function(e,i,a){return e.range;}))
 		svg
 			.attr("width", (bounds.right-bounds.left)*SCALE)
 			.attr("height", (bounds.top-bounds.bottom)*SCALE)
 		transformLayer
 			.attr("transform",  "scale(1, -1) scale("+SCALE+") translate(0 0) translate("+(-bounds.left)+" "+(-bounds.top)+") scale(1)")
 
-		window.scales = scales;
 
-		var subLayers = opacityLayer.selectAll("g").data(d3.range(8)
-			.reverse()
-			);
+		slider
+			.attr("x", -20)
+			.attr("y", (bounds.top-bounds.bottom)*SCALE-12);
+
+		var subLayers = opacityLayer.selectAll("g").data(d3.range(scales.length).reverse());
 
 		var subLayersEntered = subLayers.enter().append("g")
 			.style("fill", function(dat, i){
@@ -162,8 +181,18 @@ document.addEventListener("DOMContentLoaded", function() {
 		subTransitions = svg
 			.transition()
 			.delay(500)
-			.duration(15000)
+			.duration(10000)
 			.ease("linear")
+
+		subTransitions
+			.selectAll("#slider")
+			.tween("slider", function(dat, i) {
+				console.log(dat, i);
+				return function(t) {
+					var width = (bounds.right-bounds.left)*SCALE;
+					this.setAttribute("x", (width+40)*t-20);
+				};
+			})
 
 		subTransitions
 			.selectAll('text')
@@ -192,7 +221,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
 					var v1 = mappedScale(dat)(date)
 					var v2 = mappedScale(dat-1)(date)
-					if (dat != 0) this.setAttribute("points", polypoints(v1, v2, dat));
+					if (dat != 0)console.assert(mappedScale(dat)!=mappedScale(dat-1), dat)
+					if (dat == 7) console.log(i, v1, ranges(sizes(i))/60, v2, ranges(sizes(i-1))/60);
+						this.setAttribute("points", polypoints(v1, v2, dat));
 					this.setAttribute("n", dat)
 			};
 		});
