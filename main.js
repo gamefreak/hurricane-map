@@ -9,9 +9,10 @@ var RANGE_TABLE = [
 	[96, 190],
 	[120, 239]
 ];
-dataFiles = {}
-// PHILIPPE,bret,irene,katia,lee,maria,ophelia,rhina,sean
-hurricaneList = ["sandy", "jova", "philippe", "irene", "isaac", "nadine", "beryl", "bret", "katia"]
+var dataFiles = {};
+// lee,maria,ophelia,rhina,sean
+var hurricaneList = ["sandy", "jova", "philippe", "irene", "isaac", "nadine", "beryl", "bret", "katia"];
+
 function load() {
 	var picker = document.getElementById("picker");
 	var hash = location.hash;
@@ -31,81 +32,105 @@ function load() {
 	});
 }
 
+function updateColors(selection) {
+	var col = d3.hsl(document.querySelector("#conecolor").value);
+	selection.style("fill", function(dat, i){
+		return col.brighter(1.1).darker(((7-dat)/3.0));
+	});
+}
+
+function updateOpacity(selection, opacity) {
+	// console.log(arguments);
+	// var opacity = document.querySelector("#opacityfield").value;
+	// d3.selectAll(".opacity").style("opacity", opacity);
+	selection.style("opacity", opacity);
+}
+
+function zoomUpdate(translate, scale, svg) {
+	if (d3.event) {
+		translate = d3.event.translate;
+		scale = d3.event.scale;
+	} else {
+		translate = [-scale*translate[0], scale*translate[1]];
+		svg.call(d3.behavior.zoom()
+		.x(d3.scale.linear().domain([-180, 180]).range([-180, 180]))
+		.y(d3.scale.linear().domain([90, -90]).range([180, 0]))
+		.translate(translate)
+		.scale(scale)
+		.scaleExtent([2.5, 25.0])
+		.on("zoom", zoomUpdate));
+	}
+	d3.select("#transform").attr("transform", "translate("+translate+") scale("+scale+") scale(1 -1)");
+}
+window.zu = zoomUpdate;
 
 document.addEventListener("DOMContentLoaded", function() {
-	var rangeEntries = d3.transpose(RANGE_TABLE);
-	var ranges = d3.scale.linear().domain(rangeEntries[0]).range(rangeEntries[1]);
-	// window.ranges = ranges;
+	d3.selectAll("#optionwrapper > fieldset > legend")
+		.on("click", function(dat, i) {
+			this.parentNode.classList.toggle("collapse");
+		});
+	d3.select("#conecolor").on("input", function(dat, input) {
+		d3.selectAll('.colors').call(updateColors)
+	});
+	d3.select("#opacityfield").on("input", function(dat, input) {
+		d3.selectAll('.opacity').call(updateOpacity, this.value)
+	});
 
 	var options = d3.select("#picker")
-		.style("background-color", "white")
-		.style("position", "absolute")
-		.style("right", "1em")
 		.selectAll("div")
-		.data(hurricaneList)
+		.data(hurricaneList);
+
 	var divs = options
-		.enter().append("div")
-	divs
-		.append("input")
+		.enter().append("div");
+
+	divs.append("input")
 		.attr("name", "choice")
 		.attr("type", "radio")
 		.attr("id", function(d) {return "strm"+d})
 		.attr("value", function(d,i) {return "#"+d})
 		.on("change", function(data) {
 			location.hash = "#" + data;
-		})
+		});
+
 	divs.append("label")
 		.attr("for", function(d) {return "strm"+d})
-		.text(function(d, i){return d[0].toUpperCase() + d.slice(1).toLowerCase()})
-	
+		.text(function(d, i){return d[0].toUpperCase() + d.slice(1).toLowerCase()});
+
 	window.addEventListener("hashchange", load);
 
 	load();
 
-	window.svg = d3.select("body").append("svg")
+	window.svg = d3.select("svg#map")
 		.attr("width", 360)
-		.attr("height", 180)
-		.style("float", "left")
+		.attr("height", 180);
 
-	var transformLayer = svg.append("g")
-		.attr("transform", "scale(1 -1)")
-	transformLayer
-		.append("image")
-		.attr("x", -180)
-		.attr("y", -90)
-		.attr("width", 360)
-		.attr("height", 180)
-		.attr("transform", "scale(1, -1)")
-		.attr("xlink:href", "world_map.jpeg")
+	var transformLayer = svg.select("g#transform");
+	var stormWrapper = transformLayer.select("#storms");
+	var stormLayer = stormWrapper.append("g").attr("class", "storm")
+	var opacityLayer = stormLayer.append("g").attr("class", "opacity").call(updateOpacity, 0.25)
 
-	var opacityLayer = transformLayer.append("g")
-		.style("opacity", ".25")
+	var histLayer = stormLayer
+		.append("g")
+		.attr("class", "history");
+	var histLine = histLayer.append("path")
+		.attr("class", "historyline")
+		.style("fill", "none")
+		.style("stroke", "green")
+		.style("stroke-width", "0.1")
 
-	var timestamp = svg
-			.append("text")
-			.attr("x", 0)
-			.attr("y", 10)
-			.attr("fill", "white")
-			.attr("font-size", 10)
+	var timestamp = svg.select("#timestamp");
 
-	var slider = svg
-		.append("rect")
-		.attr("id", "slider")
-		.attr("x", 0)
-		.attr("y", -100)
-		.attr("width", 20)
-		.attr("height", 10)
-		.attr("rx", 2)
-		.attr("ry", 2)
-		.style("fill", "grey")
+	var slider = svg.select("#slider").style("fill", "grey");
 
+	var rangeEntries = d3.transpose(RANGE_TABLE);
+	var ranges = d3.scale.linear().domain(rangeEntries[0]).range(rangeEntries[1]);
 
 	window.newData = function newData(data) {
 		console.log(data);
 		window.data = data;
 		data.forecast.sort(function(a,b) {
 			return d3.ascending(a.range, b.range)
-		})
+		});
 		var bounds = null;
 		// var left, right, top, bottom;
 		for (var a = 0; a < data.forecast.length; a++) {
@@ -129,15 +154,18 @@ document.addEventListener("DOMContentLoaded", function() {
 				}
 			}
 		}
-
+		window.bounds = bounds;
 		if (data.basin == "EP" && bounds.left > bounds.right) {
 			console.log("SHIFT");
 			bounds.left -= 360.0;
 		}
 		console.log(bounds);
+	
+		zoomUpdate([bounds.left,bounds.top], SCALE, svg)
 
 		var shortForcast = data.forecast
-			.filter(function(e, i, a) {return e.points.length >= 2})
+			.filter(function(e, i, a) {return e.points.length >= 2});
+
 		var scales = shortForcast
 			.map(function(e1, i, a) {
 				return d3.time.scale()
@@ -154,37 +182,33 @@ document.addEventListener("DOMContentLoaded", function() {
 
 		var sizes = d3.scale.linear()
 			.domain(d3.range(shortForcast.length))
-			.range(shortForcast.map(function(e,i,a){return e.range;}))
+			.range(shortForcast.map(function(e,i,a){return e.range;}));
 		svg
 			.attr("width", (bounds.right-bounds.left)*SCALE)
-			.attr("height", (bounds.top-bounds.bottom)*SCALE)
-		transformLayer
-			.attr("transform",  "scale(1, -1) scale("+SCALE+") translate(0 0) translate("+(-bounds.left)+" "+(-bounds.top)+") scale(1)")
-
+			.attr("height", (bounds.top-bounds.bottom)*SCALE);
 
 		slider
-			.attr("x", -20)
-			.attr("y", (bounds.top-bounds.bottom)*SCALE-5);
+			.attr("x", 0)
+			.attr("y", (bounds.top-bounds.bottom)*SCALE-10);
 
 		var subLayers = opacityLayer.selectAll("g").data(d3.range(scales.length).reverse());
 
-		var subLayersEntered = subLayers.enter().append("g")
-			.style("fill", function(dat, i){
-				return d3.rgb(255,255, 255).hsl()
-				// .brighter(1.1)
-				.darker(((7-dat)/3.0))
-			})
+		var subLayersEntered = subLayers
+			.enter().append("g").classed('colors', true);
+		subLayers.call(updateColors);
 			
 		// subLayersEntered.append("polygon")
-		subLayersEntered.append("circle").attr("r", function(r,i){
-			return ranges(sizes(r))/60.0;
-		})
-		.style("stroke", "black")
-		.attr("stroke-width", ".1");
+		subLayersEntered.append("circle")
+			.attr("r", function(r,i){
+				return ranges(sizes(r))/60.0;
+			})
+			.style("stroke", "black")
+			.attr("stroke-width", ".1");
 
-		subLayersEntered.append("polygon")
+		subLayersEntered.append("polygon");
+
 		subLayersEntered.append("polyline")
-		.style("stroke", "black")
+			.style("stroke", "black")
 			.attr("stroke-width", ".1");
 
 		subLayers.exit().remove();
@@ -193,51 +217,65 @@ document.addEventListener("DOMContentLoaded", function() {
 			.transition()
 			.delay(500)
 			.duration(10000)
-			.ease("linear")
+			.ease("linear");
 
-		subTransitions
-			.selectAll("#slider")
-			.tween("slider", function(dat, i) {
-				return function(t) {
-					var width = (bounds.right-bounds.left)*SCALE;
-					this.setAttribute("x", (width+40)*t-20);
-				};
-			})
+		function masterTween() {
+			var startTime = new Date(data.times.from*1000);
+			var linePath = d3.svg.line()
+					.interpolate("basis")
+					.x(function(d){return scales[0](d)[0]})
+					.y(function(d){return scales[0](d)[1]});
 
-		subTransitions
-			.selectAll('text')
-			.tween("timestamp", function(dat, i) {
-				return function(t) {
-					this.textContent = (new Date((data.times.from + (data.times.to-data.times.from)*t)*1000)).toString();
-				}
-			})
+			var historyLine = svg.select(".historyline");
 
-		subTransitions.selectAll("circle")
-			.tween("circle pos", function(dat,i){
-				return function(t){
-					var date = new Date((data.times.from + (data.times.to-data.times.from)*t)*1000);
-					
-					var pos = mappedScale(dat)(date)
-					this.setAttribute("cx", pos[0]);
-					this.setAttribute("cy", pos[1]);
-				}
-			});
+			var timestamp = svg.select('#timestamp');
 
+			var circles = svg.selectAll("#transform circle")
+			
+			var polys = svg.selectAll("polygon, polyline:not(.historyline)");
 
-		subTransitions.selectAll("polygon, polyline")
-			.tween("poly verts", function(dat, i) {
-				return function(t) {
-					var date = new Date((data.times.from + (data.times.to-data.times.from)*t)*1000);
+			return function(t) {
+				// console.log(t);
+				var now = new Date((data.times.from + (data.times.to-data.times.from)*t)*1000);
+				
+				var pts = linePath(d3.time.hours(startTime, now, 6)) || "M 0 0";
+				historyLine.attr("d", pts)
 
-					var v1 = mappedScale(dat)(date)
-					var v2 = mappedScale(dat-1)(date)
-					// if (dat != 0)console.assert(mappedScale(dat)!=mappedScale(dat-1), dat)
-					// if (dat == 7) console.log(i, v1, ranges(sizes(i))/60, v2, ranges(sizes(i-1))/60);
-					this.setAttribute("points", polypoints(v1, v2, dat));
-					// this.setAttribute("n", dat)
+				timestamp.property("textContent", now);
+				circles
+					.attr("cx", function(d, i) {return mappedScale(d)(now)[0]})
+					.attr("cy", function(d, i) {return mappedScale(d)(now)[1]})
+				
+				polys.attr("points", function(d, i) {
+					var v1 = mappedScale(d)(now)
+					var v2 = mappedScale(d-1)(now)
+					return polypoints(v1, v2, d);
+				});
 			};
-		});
+		}
+		subTransitions.tween("main", masterTween)
 
+		function sliderTween() {
+			return function(t) {
+				var width = (bounds.right-bounds.left)*SCALE-20;
+				slider.attr("x", width*t);
+			};
+		}
+		subTransitions.tween("slider", sliderTween)
+
+
+
+		var dragger = d3.behavior.drag()
+			.origin(function(d){return {x:parseFloat(this.getAttribute("x")), y:0}})
+			.on("dragstart", function(){svg.transition()})
+			.on("drag", function() {
+				var width = (bounds.right-bounds.left)*SCALE - 20;
+				var x = Math.max(0, Math.min(d3.event.x, width))
+				this.setAttribute("x", x);
+				masterTween()(x/width);
+			})
+		d3.select("#slider").call(dragger);
+	
 		function polypoints(p1, p2, i) {
 			var x1 = p1[0],
 				y1 = p1[1],

@@ -1,4 +1,4 @@
-(function() {
+﻿(function() {
   function d3_class(ctor, properties) {
     try {
       for (var key in properties) {

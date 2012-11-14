@@ -2,12 +2,34 @@
 <html>
 	<head>
 		<title></title>
-		<link type="text/css" rel="stylesheet" href=""/> 
+		<link type="text/css" rel="stylesheet" href="style.css"/> 
 		<script src="d3.v2.js"></script>
-		<script type="text/javascript" src="main.js"></script>
+		<script charset="utf-8" type="text/javascript" src="main.js"></script>
 	</head>
 	<body>
-		<fieldset id="picker"></fieldset>
+		<div id="optionwrapper">
+			<fieldset id="picker">
+				<legend>Storms</legend>
+			</fieldset>
+			<fieldset id="options" class="">
+				<legend>Options</legend>
+					<div><label for="conecolor">Cone color: </label><input id="conecolor" type="text" size="10" value="#ffffff"/></div>
+					<div><label for="opacityfield">Opacity: </label><input id="opacityfield" type="text" size="10" value="0.25"/></div>
+			</fieldset>
+		</div>
 		<br/>
+		<svg id="map">
+			<defs>
+			    <marker id="midmarker" viewBox="-5 -5 10 10" refX="0" refY="0" markerWidth="5" markerHeight="5" orient="auto">
+					<circle fill="red" r="5"></circle>
+			    </marker>
+			</defs>
+			<g id="transform" transform="scale(1 -1)">
+				<image x="-180" y="-90" width="360" height="180" transform="scale(1 -1)" xlink:href="world_map.jpeg" />
+				<g id="storms"></g>
+			</g>
+			<text id="timestamp" x="0" y="10" fill="white" font-size="10"></text>
+			<rect id="slider" x="0" y="-100" width="20" height="10" rx="2" ry="2" />
+		</svg>
 	</body>
 </html>

@@ -1,0 +1,20 @@
+#optionwrapper {
+	position: absolute;
+	right: 1em;
+}
+
+#optionwrapper fieldset {
+	background-color: white;
+}
+
+#optionwrapper > fieldset.collapse div {
+	display: none;
+}
+
+#map {
+	float: left;
+}
+
+.historyline{} {
+	marker-mid: url(#midmarker);
+}
