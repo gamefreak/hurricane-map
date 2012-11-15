@@ -11,6 +11,17 @@
 	display: none;
 }
 
+
+#optionwrapper input {
+	/*text-align: right;*/
+	position: absolute;
+	right: 1em;
+}
+
+#stormlist {
+	width: 14em;
+}
+
 #map {
 	float: left;
 }
