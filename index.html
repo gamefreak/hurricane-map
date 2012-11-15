@@ -10,11 +10,13 @@
 		<div id="optionwrapper">
 			<fieldset id="picker">
 				<legend>Storms</legend>
+				<select multiple id="stormlist">
+				</select>
 			</fieldset>
 			<fieldset id="options" class="">
 				<legend>Options</legend>
 					<div><label for="conecolor">Cone color: </label><input id="conecolor" type="text" size="10" value="#ffffff"/></div>
-					<div><label for="opacityfield">Opacity: </label><input id="opacityfield" type="text" size="10" value="0.25"/></div>
+					<div><label for="opacityfield">Opacity: </label><input id="opacityfield" type="text" size="10" value="0.4"/></div>
 			</fieldset>
 		</div>
 		<br/>
@@ -31,5 +33,6 @@
 			<text id="timestamp" x="0" y="10" fill="white" font-size="10"></text>
 			<rect id="slider" x="0" y="-100" width="20" height="10" rx="2" ry="2" />
 		</svg>
+		<p id="foo"></p>
 	</body>
 </html>

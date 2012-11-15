@@ -15,6 +15,13 @@
 	float: left;
 }
 
-.historyline{} {
+#timestamp {
+	font-size: 10
+}
+
+.historyline {
+	fill: none;
+	stroke: green;
+	stroke-width: 0.1;
 	marker-mid: url(#midmarker);
 }
